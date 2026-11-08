@@ -1,43 +1,66 @@
-# BlueBuild Template &nbsp; [![bluebuild build badge](https://github.com/blue-build/template/actions/workflows/build.yml/badge.svg)](https://github.com/blue-build/template/actions/workflows/build.yml)
+# fedora-nix
 
-See the [BlueBuild docs](https://blue-build.org/how-to/setup/) for quick setup instructions for setting up your own repository based on this template.
+A custom Fedora Atomic desktop image: **GNOME on an NVIDIA driver base, with the Nix package manager built in** — built with [BlueBuild](https://blue-build.org).
 
-After setup, it is recommended you update this README to describe your custom image.
+Base image: `ghcr.io/blue-build/base-images/fedora-base-nvidia` (minimal atomic base + NVIDIA 580 proprietary drivers).
+
+## What's inside
+
+- **GNOME desktop** (`@gnome-desktop-environment` + GDM, Wayland) on top of the minimal base image
+- **Nix** (Fedora official package, `nix-daemon` enabled, flakes + nix-command enabled)
+  - `/nix` is a bind mount of the persistent `/var/lib/nix` (composefs makes `/` read-only at runtime)
+  - patched **glib2** (`glib-appinfo-watch.patch` from nixpkgs) so apps installed via Nix appear/update in the GNOME app grid automatically
+- Flathub enabled (system + user), no bundled flatpaks
 
 ## Installation
 
-> [!WARNING]  
-> [This is an experimental feature](https://www.fedoraproject.org/wiki/Changes/OstreeNativeContainerStable), try at your own discretion.
+> [!WARNING]
+> [Experimental feature](https://www.fedoraproject.org/wiki/Changes/OstreeNativeContainerStable) — try at your own discretion.
 
-To rebase an existing atomic Fedora installation to the latest build:
+Rebase an existing atomic Fedora installation:
 
-- First rebase to the unsigned image, to get the proper signing keys and policies installed:
-  ```
-  rpm-ostree rebase ostree-unverified-registry:ghcr.io/blue-build/template:latest
-  ```
-- Reboot to complete the rebase:
-  ```
-  systemctl reboot
-  ```
-- Then rebase to the signed image, like so:
-  ```
-  rpm-ostree rebase ostree-image-signed:docker://ghcr.io/blue-build/template:latest
-  ```
-- Reboot again to complete the installation
-  ```
-  systemctl reboot
-  ```
+```bash
+# first, to get signing keys and policies:
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/<user>/fedora-nix:latest
+systemctl reboot
+# then, to the signed image:
+rpm-ostree rebase ostree-image-signed:docker://ghcr.io/<user>/fedora-nix:latest
+systemctl reboot
+```
 
-The `latest` tag will automatically point to the latest build. That build will still always use the Fedora version specified in `recipe.yml`, so you won't get accidentally updated to the next major version.
+## Using Nix
 
-## ISO
+After first boot, add your user to the `nix` group and reboot/re-login:
 
-If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/how-to/generate-iso/#_top). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.
+```bash
+sudo usermod -aG nix $USER
+```
+
+Verify:
+
+```bash
+mount | grep /nix          # bind mount from /var/lib/nix
+systemctl status nix-daemon
+nix-shell -p hello         # or: nix run nixpkgs#hello
+```
+
+Nix-installed apps (`.desktop` files in your profile's `share/applications`) will show up in the GNOME app grid thanks to the patched glib2.
+
+If you hit SELinux denials around `/nix`, try `sudo restorecon -R /var/lib/nix` and check `ausearch -m avc -ts recent`.
+
+## Building
+
+CI (`.github/workflows/build.yml`) builds the image daily and on push via [blue-build/github-action](https://github.com/blue-build/github-action). To build locally:
+
+```bash
+bluebuild validate recipes/recipe.yml
+bluebuild build recipes/recipe.yml
+```
 
 ## Verification
 
-These images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). You can verify the signature by downloading the `cosign.pub` file from this repo and running the following command:
+Images are signed with [cosign](https://github.com/sigstore/cosign):
 
 ```bash
-cosign verify --key cosign.pub ghcr.io/blue-build/template
+cosign verify --key cosign.pub ghcr.io/<user>/fedora-nix
 ```

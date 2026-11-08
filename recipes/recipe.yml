@@ -1,45 +1,90 @@
 ---
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
-# image will be published to ghcr.io/<user>/<name>
-name: template
-# description will be included in the image's metadata
-description: This is my personal OS image.
+name: fedora-nix
+description: Fedora atomic desktop with GNOME and the Nix package manager (NVIDIA 580 base).
+base-image: ghcr.io/blue-build/base-images/fedora-base-nvidia
+image-version: latest
 
-# the base image to build on top of (FROM) and the version tag to use
-base-image: ghcr.io/ublue-os/silverblue-main
-image-version: latest # You can pin to a specific version of Fedora as well
+stages:
+  # Rebuild glib2 with the nixpkgs glib-appinfo-watch patch in a separate
+  # stage; resulting rpms are copied into the final image and installed.
+  - name: glib2-build
+    from: ghcr.io/blue-build/base-images/fedora-base-nvidia:latest
+    modules:
+      - type: files
+        files:
+          - source: patches
+            destination: /tmp/patches
+      - type: script
+        scripts:
+          - build-glib.sh
 
-# module configuration, executed in order
-# you can include multiple instances of the same module
 modules:
+  # 1. System files (systemd units, tmpfiles.d, nix.conf)
   - type: files
     files:
       - source: system
-        destination: / # copies files/system/* (* means everything inside it) into your image's root folder /
+        destination: /
 
+  # 2. Install patched glib2 (overrides base package)
+  - type: copy
+    from: glib2-build
+    src: /out/rpms/
+    dest: /tmp/glib2-rpms/
+  - type: script
+    snippets:
+      - dnf install -y /tmp/glib2-rpms/*.rpm && rm -rf /tmp/glib2-rpms
+
+  # 3. GNOME desktop (minimal base needs the infrastructure added)
   - type: dnf
-    repos:
-      copr:
-        - atim/starship
     install:
       packages:
-        - micro
-        - starship
+        # GNOME group + display manager
+        - "@gnome-desktop-environment"
+        - gdm
+        # Desktop infrastructure missing from the minimal base
+        - NetworkManager
+        - NetworkManager-wifi
+        - NetworkManager-bluetooth
+        - plymouth
+        - plymouth-system-theme
+        - grub2-tools-extra
+        - flatpak
+        - xdg-desktop-portal-gnome
+        - gnome-software
+        - gnome-tweaks
+        # Basic CLI comfort
+        - git
+        - curl
+        - vim
+        - zsh
     remove:
+      auto-remove: false
       packages:
-        # example: removing firefox (in favor of the flatpak)
-        # "firefox" is the main package, "firefox-langpacks" is a dependency
-        - firefox
-        - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
+        - gnome-software-rpm-ostree
 
+  # 4. Nix (Fedora official package)
+  - type: dnf
+    install:
+      packages:
+        - nix
+
+  # 5. systemd: enable gdm / NetworkManager / nix
+  - type: systemd
+    system:
+      enabled:
+        - gdm
+        - NetworkManager
+        - nix.mount
+        - nix-daemon.service
+      masked:
+        - rpm-ostreed-automatic.timer
+
+  # 6. Flatpak: enable Flathub by default, no bundled apps
   - type: default-flatpaks
     configurations:
-      - notify: true # Send notification after install/uninstall is finished (true/false)
+      - notify: true
         scope: system
-        # If no repo information is specified, Flathub will be used by default
-        install: # system flatpaks we want all users to have and not remove
-          - org.mozilla.firefox
-          - org.gnome.Loupe
-      - scope: user # Also add Flathub user repo, but no user packages
+      - scope: user
 
-  - type: signing # this sets up the proper policy & signing files for signed images to work fully
+  - type: signing

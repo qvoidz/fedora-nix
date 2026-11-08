@@ -1,0 +1,14 @@
+[Unit]
+Description=Nix store (/nix from persistent /var/lib/nix)
+Documentation=https://nixos.org/manual/nix/stable/
+ConditionPathExists=/var/lib/nix
+Before=nix-daemon.service
+
+[Mount]
+What=/var/lib/nix
+Where=/nix
+Type=none
+Options=bind
+
+[Install]
+WantedBy=multi-user.target
