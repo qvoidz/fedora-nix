@@ -40,12 +40,12 @@ sudo nix profile install nixpkgs#firefox
 
 (root's default profile IS `/nix/var/nix/profiles/default`, no `--profile` needed.)
 
-Optionally, without adding yourself to any group you can also install per-user
-with `nix profile install nixpkgs#hello` — this requires membership in the
-`nix` group (one-time setup, re-login afterwards):
+Optionally, per-user installs without sudo (`nix profile install nixpkgs#hello`)
+require membership in the `nixbld` group (Fedora's nix package creates this
+group; re-login afterwards):
 
 ```bash
-sudo usermod -aG nix $USER
+sudo usermod -aG nixbld $USER
 ```
 
 Verify:
