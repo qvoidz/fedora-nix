@@ -44,7 +44,21 @@ systemctl status nix-daemon
 nix-shell -p hello         # or: nix run nixpkgs#hello
 ```
 
-Nix-installed apps (`.desktop` files in your profile's `share/applications`) will show up in the GNOME app grid thanks to the patched glib2.
+### Installing apps system-wide (like a normal package manager)
+
+Install into the shared default profile — available to **all users**:
+
+```bash
+sudo nix profile install --profile /nix/var/nix/profiles/default nixpkgs#firefox
+```
+
+Or install into your own profile (just for you, no sudo):
+
+```bash
+nix profile install nixpkgs#firefox
+```
+
+`/etc/profile.d/nix.sh` (baked into the image) puts both profiles' `bin` on `PATH` and their `share` on `XDG_DATA_DIRS`, so GUI apps appear in GNOME. The patched glib2 watches both profile locations, so newly installed apps show up in the app grid without rebooting.
 
 If you hit SELinux denials around `/nix`, try `sudo restorecon -R /var/lib/nix` and check `ausearch -m avc -ts recent`.
 
