@@ -47,7 +47,7 @@ index 87db7a97a..2e1689ed7 100644
      {
        gchar *alternative_dir;
  
-@@ -1650,6 +1660,47 @@ desktop_file_dirs_lock (void)
+@@ -1650,6 +1660,57 @@ desktop_file_dirs_lock (void)
        for (i = 0; dirs[i]; i++)
          g_ptr_array_add (desktop_file_dirs, desktop_file_dir_new (dirs[i]));
  
