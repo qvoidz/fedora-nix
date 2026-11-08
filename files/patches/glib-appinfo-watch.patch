@@ -63,6 +63,16 @@ index 87db7a97a..2e1689ed7 100644
 +        system_profile_dir->nix_profile_watch_dir = g_strdup ("/nix/var/nix/profiles");
 +        g_ptr_array_add (desktop_file_dirs, desktop_file_dir_ref (system_profile_dir));
 +
++        /* Fedora (and other non-NixOS multi-user installs): `sudo nix
++         * profile install` uses the "default" profile, not "system".  */
++        {
++          DesktopFileDir *default_profile_dir;
++          default_profile_dir =
++            desktop_file_dir_new ("/nix/var/nix/profiles/default/share");
++          default_profile_dir->nix_profile_watch_dir = g_strdup ("/nix/var/nix/profiles");
++          g_ptr_array_add (desktop_file_dirs, desktop_file_dir_ref (default_profile_dir));
++        }
++
 +        profile_dir = g_build_filename (g_get_user_state_dir (), "nix", "profiles", NULL);
 +        user_data_dir = g_build_filename (profile_dir, "profile", "share", NULL);
 +        user_profile_dir = desktop_file_dir_new (user_data_dir);
