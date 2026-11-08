@@ -35,33 +35,28 @@ modules:
     snippets:
       - dnf install -y /tmp/glib2-rpms/*.rpm && rm -rf /tmp/glib2-rpms
 
-  # 3. GNOME desktop (minimal base needs the infrastructure added)
+  # 3. GNOME desktop (explicit packages: the @gnome-desktop-environment
+  #    group no longer exists in Fedora 45 comps; most infra is already in the base)
   - type: dnf
     install:
       packages:
-        # GNOME group + display manager
-        - "@gnome-desktop-environment"
+        # Desktop core
+        - gnome-shell
         - gdm
-        # Desktop infrastructure missing from the minimal base
-        - NetworkManager
-        - NetworkManager-wifi
-        - NetworkManager-bluetooth
-        - plymouth
-        - plymouth-system-theme
-        - grub2-tools-extra
-        - flatpak
+        - gnome-session
+        - gnome-control-center
+        - gnome-settings-daemon
+        - gnome-backgrounds
+        - adwaita-icon-theme
         - xdg-desktop-portal-gnome
+        # Core apps
+        - nautilus
+        - ptyxis
+        - gnome-text-editor
         - gnome-software
         - gnome-tweaks
-        # Basic CLI comfort
-        - git
-        - curl
-        - vim
-        - zsh
-    remove:
-      auto-remove: false
-      packages:
-        - gnome-software-rpm-ostree
+        - gnome-calculator
+        - gnome-system-monitor
 
   # 4. Nix (Fedora official package)
   - type: dnf
