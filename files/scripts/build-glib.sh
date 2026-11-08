@@ -20,14 +20,14 @@ SPEC=~/rpmbuild/SPECS/glib2.spec
 if ! grep -q "glib-appinfo-watch" "$SPEC"; then
   # append the patch line after the Source tag (sed 'a' keeps it a separate line)
   sed -i '/^Source[0-9]*:/a Patch1000: glib-appinfo-watch.patch' "$SPEC"
+  # gi-docgen leaves dangling '.#.' temp symlinks in the buildroot that crash
+  # brp processing; delete them right after meson install
+  sed -i '/^%meson_install$/a find %{buildroot} -name ".#.*" -delete' "$SPEC"
 fi
 
-# Build (skip %check and the doc subpackage). Also neuter brp-mangle-shebangs:
-# gi-docgen leaves dangling '.#.' symlinks in the buildroot that crash it.
-# It only rewrites shebangs of packaged scripts, irrelevant for the runtime lib.
-rpmbuild -ba --nocheck --without docs \
-  --define '__brp_mangle_shebangs /bin/true' \
-  "$SPEC"
+# Build (skip %check; spec has no docs bcond, the cleanup above handles the
+# doc temp files)
+rpmbuild -ba --nocheck "$SPEC"
 
 # Export rpms for the copy module
 mkdir -p /out/rpms
