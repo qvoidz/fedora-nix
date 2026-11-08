@@ -1,14 +1,14 @@
 [Unit]
 Description=Nix store (/nix from persistent /var/lib/nix)
 Documentation=https://nixos.org/manual/nix/stable/
-ConditionPathExists=/var/lib/nix
 Before=nix-daemon.service
 
 [Mount]
 What=/var/lib/nix
 Where=/nix
 Type=none
-Options=bind
+# systemd creates /var/lib/nix on the fly (no tmpfiles ordering race)
+Options=bind,x-systemd.make-mount-source-directory
 
 [Install]
 WantedBy=multi-user.target
