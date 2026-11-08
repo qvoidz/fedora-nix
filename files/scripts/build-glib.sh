@@ -22,10 +22,12 @@ if ! grep -q "glib-appinfo-watch" "$SPEC"; then
   sed -i '/^Source[0-9]*:/a Patch1000: glib-appinfo-watch.patch' "$SPEC"
 fi
 
-# Build (skip %check and the doc subpackage: gi-docgen output contains broken
-# temp symlinks like .#.xxx.htmlNNNN that break brp processing; we only need
-# the runtime library anyway)
-rpmbuild -ba --nocheck --without docs "$SPEC"
+# Build (skip %check and the doc subpackage). Also neuter brp-mangle-shebangs:
+# gi-docgen leaves dangling '.#.' symlinks in the buildroot that crash it.
+# It only rewrites shebangs of packaged scripts, irrelevant for the runtime lib.
+rpmbuild -ba --nocheck --without docs \
+  --define '__brp_mangle_shebangs /bin/true' \
+  "$SPEC"
 
 # Export rpms for the copy module
 mkdir -p /out/rpms
