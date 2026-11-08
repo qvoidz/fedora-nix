@@ -30,7 +30,19 @@ systemctl reboot
 
 ## Using Nix
 
-After first boot, add your user to the `nix` group and reboot/re-login:
+### Using Nix (system-wide, like a normal package manager)
+
+Install into the shared system profile — available to **all users**:
+
+```bash
+sudo nix profile install nixpkgs#firefox
+```
+
+(root's default profile IS `/nix/var/nix/profiles/default`, no `--profile` needed.)
+
+Optionally, without adding yourself to any group you can also install per-user
+with `nix profile install nixpkgs#hello` — this requires membership in the
+`nix` group (one-time setup, re-login afterwards):
 
 ```bash
 sudo usermod -aG nix $USER
@@ -44,21 +56,10 @@ systemctl status nix-daemon
 nix-shell -p hello         # or: nix run nixpkgs#hello
 ```
 
-### Installing apps system-wide (like a normal package manager)
-
-Install into the shared default profile — available to **all users**:
-
-```bash
-sudo nix profile install --profile /nix/var/nix/profiles/default nixpkgs#firefox
-```
-
-Or install into your own profile (just for you, no sudo):
-
-```bash
-nix profile install nixpkgs#firefox
-```
-
-`/etc/profile.d/nix.sh` (baked into the image) puts both profiles' `bin` on `PATH` and their `share` on `XDG_DATA_DIRS`, so GUI apps appear in GNOME. The patched glib2 watches both profile locations, so newly installed apps show up in the app grid without rebooting.
+`/etc/profile.d/nix.sh` (baked into the image) puts both profiles' `bin` on
+`PATH` and their `share` on `XDG_DATA_DIRS`, so GUI apps appear in GNOME. The
+patched glib2 watches both profile locations, so newly installed apps show up
+in the app grid without rebooting.
 
 If you hit SELinux denials around `/nix`, try `sudo restorecon -R /var/lib/nix` and check `ausearch -m avc -ts recent`.
 

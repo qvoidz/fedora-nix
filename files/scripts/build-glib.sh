@@ -22,8 +22,10 @@ if ! grep -q "glib-appinfo-watch" "$SPEC"; then
   sed -i '/^Source[0-9]*:/a Patch1000: glib-appinfo-watch.patch' "$SPEC"
 fi
 
-# Build (skip %check to keep build times reasonable)
-rpmbuild -ba --nocheck "$SPEC"
+# Build (skip %check and the doc subpackage: gi-docgen output contains broken
+# temp symlinks like .#.xxx.htmlNNNN that break brp processing; we only need
+# the runtime library anyway)
+rpmbuild -ba --nocheck --without docs "$SPEC"
 
 # Export rpms for the copy module
 mkdir -p /out/rpms
