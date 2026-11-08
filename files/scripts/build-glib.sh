@@ -18,8 +18,8 @@ rpm -ivh glib2-*.src.rpm
 cp /tmp/patches/glib-appinfo-watch.patch ~/rpmbuild/SOURCES/
 SPEC=~/rpmbuild/SPECS/glib2.spec
 if ! grep -q "glib-appinfo-watch" "$SPEC"; then
-  # insert only once, right after the first Source line
-  sed -i '0,/^Source[0-9]*:/s//&\nPatch1000: glib-appinfo-watch.patch/' "$SPEC"
+  # append the patch line after the Source tag (sed 'a' keeps it a separate line)
+  sed -i '/^Source[0-9]*:/a Patch1000: glib-appinfo-watch.patch' "$SPEC"
 fi
 
 # Build (skip %check to keep build times reasonable)
